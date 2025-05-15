@@ -1,51 +1,67 @@
 import streamlit as st
 from transformers import pipeline
 import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 
-# Download necessary NLTK data
 nltk.download('punkt')
 nltk.download('stopwords')
 
+# Load GPT-2 with TensorFlow backend
+chatbot = pipeline("text-generation", model="distilgpt2", framework="tf")
 
-# Load a pre-trained Hugging Face model
-chatbot = pipeline("text-generation", model="distilgpt2")
+# Initialize a list to keep chat history for context
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
-
-# Define healthcare-specific response logic (or use a model to generate responses)
 def healthcare_chatbot(user_input):
-    # Simple rule-based keywords to respond
-    if "symptom" in user_input:
+    user_input_lower = user_input.lower()
+
+    # Safety check for emergencies
+    if any(word in user_input_lower for word in ["emergency", "urgent", "help"]):
+        return "If this is an emergency, please call your local emergency number immediately."
+
+    # Basic healthcare tips with keywords
+    if "symptom" in user_input_lower:
         return "It's important to consult a doctor if you are experiencing symptoms."
-    elif "appointment" in user_input:
+    elif "appointment" in user_input_lower:
         return "Would you like me to schedule an appointment with a doctor?"
-    elif "medication" in user_input:
-        return "It's important to take your prescribed medications regularly. If you have concerns, consult your doctor."
-    else:
-        # For other inputs, use the Hugging Face model to generate a response
-        response = chatbot(user_input, max_length=300, num_return_sequences=1)
-        # Specifies the maximum length of the generated text response, including the input and the generated tokens.
-        # If set to 3, the model generates three different possible responses based on the input.
-        return response[0]['generated_text']
+    elif "medication" in user_input_lower:
+        return "Make sure to take your prescribed medications regularly. Consult your doctor if you have concerns."
 
+    # Combine chat history + new user input for context
+    context = " ".join([f"User: {msg}" if i % 2 == 0 else f"Assistant: {msg}" 
+                        for i, msg in enumerate(st.session_state.chat_history[-6:])])  # last 3 exchanges
+    context += f" User: {user_input}"
 
-# Streamlit web app interface
+    # Generate a response with context, limit length for practical use
+    response = chatbot(context, max_length=150, num_return_sequences=1)
+    generated_text = response[0]['generated_text']
+
+    # Remove repeated user input from generated text if any
+    reply = generated_text.split(user_input)[-1].strip()
+    if not reply:
+        reply = generated_text  # fallback
+
+    return reply
+
 def main():
-    # Set up the web app title and input area
-    st.title("Healthcare Assistant Chatbot")
-    
-    # Display a simple text input for user queries
+    st.set_page_config(page_title="Healthcare Assistant Chatbot", layout="centered")
+    st.title("🩺 Healthcare Assistant Chatbot")
+    st.write("Ask health-related queries like symptoms, appointments, or medication advice.")
+
     user_input = st.text_input("How can I assist you today?", "")
-    
-    # Display chatbot response
-    if st.button("Submit"):
-        if user_input:
-            st.write("User: ", user_input)
-            response = healthcare_chatbot(user_input)
-            st.write("Healthcare Assistant: ", response)
+
+    if st.button("Submit") and user_input:
+        st.session_state.chat_history.append(user_input)
+
+        response = healthcare_chatbot(user_input)
+        st.session_state.chat_history.append(response)
+
+    # Display chat history
+    for i, msg in enumerate(st.session_state.chat_history):
+        if i % 2 == 0:
+            st.markdown(f"**You:** {msg}")
         else:
-            st.write("Please enter a query.")
+            st.markdown(f"**Healthcare Assistant:** {msg}")
 
 if __name__ == "__main__":
     main()
