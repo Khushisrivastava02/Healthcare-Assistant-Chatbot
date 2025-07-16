@@ -26,6 +26,7 @@ An interactive chatbot built with **Streamlit**, **Hugging Face Transformers**, 
 * Streamlit
 * Transformers (`distilgpt2` model)
 * NLTK
+* TensorFlow
 * VS Code
 
 ---
@@ -34,12 +35,7 @@ An interactive chatbot built with **Streamlit**, **Hugging Face Transformers**, 
 
 ### ✅ Step-by-step Setup
 
-1. **Clone the repo**:
-
-```bash
-git clone https://github.com/YourUsername/healthcare-chatbot.git
-cd healthcare-chatbot
-```
+1. **Navigate to the folder** where your project is saved.
 
 2. **Create a virtual environment**:
 
@@ -56,7 +52,7 @@ source venv/bin/activate  # for macOS/Linux
 pip install -r requirements.txt
 ```
 
-If you don't have `requirements.txt`, use:
+If you don't have `requirements.txt`, install manually:
 
 ```bash
 pip install streamlit transformers nltk tensorflow
@@ -85,20 +81,21 @@ It will launch in your browser at: `http://localhost:8501`
 
 ## 🖼️ Sample Output Screenshot
 
+![Sample Output](./output.png)
 
-> 💡 *Make sure the screenshot file **`output.png`** is in your repo folder when uploading!*
+> 💡 *Make sure the screenshot file **`output.png`** is in your project folder.*
 
 ---
 
 ## 📁 Project Structure
 
 ```
-Healthcare-Chatbot/
+Healthcare-Assistant-Chatbot/
 │
-├── app.py  # Main Streamlit app
-├── requirements.txt  # Required packages
-├── README.md  # This file
-└── output.png  # Output screenshot
+├── app.py               # Main Streamlit app
+├── requirements.txt     # Required packages
+├── README.md            # This file
+└── output.png           # Output screenshot
 ```
 
 ---
@@ -110,7 +107,6 @@ streamlit
 transformers
 tensorflow
 nltk
-torch  # for distilgpt2 backend
 ```
 
 ---
@@ -122,13 +118,4 @@ Khushi Srivastava
 
 ---
 
-
-## ⭐ Star the Repo
-
-If you find this project helpful or inspiring, feel free to star the repository!
-
----
-
 > "This chatbot is for **educational/demo** purposes only and not a replacement for professional medical advice."
-
----
