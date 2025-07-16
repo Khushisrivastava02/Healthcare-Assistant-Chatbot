@@ -83,8 +83,6 @@ It will launch in your browser at: `http://localhost:8501`
 
 ![Sample Output](./output.png)
 
-> 💡 *Make sure the screenshot file **`output.png`** is in your project folder.*
-
 ---
 
 ## 📁 Project Structure
