@@ -2,66 +2,87 @@ import streamlit as st
 from transformers import pipeline
 import nltk
 
-nltk.download('punkt')
-nltk.download('stopwords')
+# Download required nltk data
+nltk.download("punkt")
+nltk.download("stopwords")
 
-# Load GPT-2 with TensorFlow backend
-chatbot = pipeline("text-generation", model="distilgpt2", framework="tf")
+# Load GPT-2 model using the pipeline
+chatbot = pipeline("text-generation", model="distilgpt2")
 
-# Initialize a list to keep chat history for context
-if 'chat_history' not in st.session_state:
+# Set up session state for chat history
+if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 def healthcare_chatbot(user_input):
     user_input_lower = user_input.lower()
 
-    # Safety check for emergencies
+    # Keyword-based quick responses
     if any(word in user_input_lower for word in ["emergency", "urgent", "help"]):
-        return "If this is an emergency, please call your local emergency number immediately."
-
-    # Basic healthcare tips with keywords
+        return "⚠️ Please contact emergency services immediately."
     if "symptom" in user_input_lower:
-        return "It's important to consult a doctor if you are experiencing symptoms."
-    elif "appointment" in user_input_lower:
-        return "Would you like me to schedule an appointment with a doctor?"
-    elif "medication" in user_input_lower:
-        return "Make sure to take your prescribed medications regularly. Consult your doctor if you have concerns."
+        return "🩺 It's best to consult a healthcare provider about symptoms."
+    if "appointment" in user_input_lower:
+        return "📅 I can help guide you to schedule an appointment."
+    if "medication" in user_input_lower:
+        return "💊 Please follow your doctor’s prescription for medications."
 
-    # Combine chat history + new user input for context
-    context = " ".join([f"User: {msg}" if i % 2 == 0 else f"Assistant: {msg}" 
-                        for i, msg in enumerate(st.session_state.chat_history[-6:])])  # last 3 exchanges
-    context += f" User: {user_input}"
+    # Build a formatted prompt with the last 3 interactions
+    past = st.session_state.chat_history[-6:]  # last 3 exchanges
+    context = ""
+    for i, msg in enumerate(past):
+        speaker = "User" if i % 2 == 0 else "Assistant"
+        context += f"{speaker}: {msg.strip()}\n"
 
-    # Generate a response with context, limit length for practical use
-    response = chatbot(context, max_length=150, num_return_sequences=1)
-    generated_text = response[0]['generated_text']
+    # Add current user input
+    context += f"User: {user_input}\nAssistant:"
 
-    # Remove repeated user input from generated text if any
-    reply = generated_text.split(user_input)[-1].strip()
-    if not reply:
-        reply = generated_text  # fallback
+    # Generate response
+    try:
+        result = chatbot(
+            context,
+            max_length=200,
+            do_sample=True,
+            temperature=0.7,
+            top_k=50,
+            top_p=0.95,
+            truncation=True,
+            num_return_sequences=1
+        )
+
+        generated_text = result[0]["generated_text"]
+
+        # Extract only the assistant's response after the prompt
+        reply = generated_text.replace(context, "").strip()
+
+        # Remove any following "User:" or repeated prompt
+        reply = reply.split("User:")[0].strip()
+
+        # If the model fails to generate a usable reply
+        if not reply or len(reply) < 5:
+            reply = "🤖 I'm not sure how to answer that. Please consult a doctor."
+
+    except Exception as e:
+        reply = f"⚠️ Sorry, there was an error: {e}"
 
     return reply
 
-def main():
-    st.set_page_config(page_title="Healthcare Assistant Chatbot", layout="centered")
-    st.title("🩺 Healthcare Assistant Chatbot")
-    st.write("Ask health-related queries like symptoms, appointments, or medication advice.")
+# Streamlit UI
+st.set_page_config(page_title="Healthcare Chatbot", layout="centered")
+st.title("🩺 Healthcare Assistant Chatbot")
+st.markdown("Ask health-related questions like symptoms, medications, or appointments.")
 
-    user_input = st.text_input("How can I assist you today?", "")
+# Input from user
+user_input = st.text_input("How can I assist you today?", "")
 
-    if st.button("Submit") and user_input:
-        st.session_state.chat_history.append(user_input)
+if st.button("Submit") and user_input:
+    st.session_state.chat_history.append(user_input)
+    bot_reply = healthcare_chatbot(user_input)
+    st.session_state.chat_history.append(bot_reply)
 
-        response = healthcare_chatbot(user_input)
-        st.session_state.chat_history.append(response)
-
-    # Display chat history
+# Show chat history
+if st.session_state.chat_history:
     for i, msg in enumerate(st.session_state.chat_history):
         if i % 2 == 0:
             st.markdown(f"**You:** {msg}")
         else:
             st.markdown(f"**Healthcare Assistant:** {msg}")
-
-if __name__ == "__main__":
-    main()
